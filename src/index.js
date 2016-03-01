@@ -16,7 +16,7 @@ console.log("      (_____|                                                      
 
 console.log("\x1b[32m[Game] Ogar Unlimited - An open source Agar.io server implementation");
 console.log("[Game] By The AJS development team\x1b[0m");
-console.log("[Game] Server version is 9.0.2");
+console.log("[Game] Server version is 10.0.0");
 var request = require('request');
 request('https://raw.githubusercontent.com/AJS-development/verse/master/msg', function(error, response, body) {
         if (!error && response.statusCode == 200) {
@@ -83,6 +83,6 @@ function parseCommands(str) {
     if (typeof execute != 'undefined') {
         execute(gameServer, split);
     } else {
-        console.log("[Console] Invalid Command!");
+        console.log("[Console] Invalid Command, try \u001B[33mhelp\u001B[0m for a list of commands.");
     }
 };

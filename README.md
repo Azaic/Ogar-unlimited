@@ -1,4 +1,5 @@
-# Ogar unlimited - More features such as Skins,Skinshortcuts,GameModes, OP, Commands, Anti-Bot Measures,minions,Live Console and more!
+
+# Ogar unlimited - More features such as Skins,Skinshortcuts,GameModes, OP, Commands, Anti-Bot Measures,minions,Live Console and more! [![Build Status](https://travis-ci.org/AJS-development/Ogar-unlimited.svg?branch=master)](https://travis-ci.org/AJS-development/Ogar-unlimited)
 A fully functional open source Agar.io server implementation, written in Node.js. Ogar Unlimited is designed to be used with the latest Agar.io client. THIS IS A FORK OF THE ORIGINAL OGAR BUT THIS HAS MORE FEATURES, also, I borrowed from other forks: Kickbots, merge (edited by me), killrange(edited by me), kickrange(edited by me) commands and the nocollision game modes. Every other Extra feature I created.
 
 This Modified copy was created to help those who want to open their server to the public. I will add more features like remote control similar to pocket dock console in pocketmine (maybe) im also probably going to add more commands and I will also add more things in OP. I am currently working on better Agar.io Physics. I will try to make the physics very much like the Official Agar.io physics
@@ -24,7 +25,7 @@ This Modified copy was created to help those who want to open their server to th
  14. Restart. Make it restart automatically or restart manually, Only works if use windows start script
  15. skins, to use custom skins, do <skinname> and then your name. for example `<spy> lol` will give you spy skin with name of lol use `[website]` to use a custom skin from a website (you need to use a url shortener though)
  16. customskins (see custom skins)
- 17. Minions: you can turn your server bots into minions. press q to enter minion control mode (a b will appear next to your name). w = eject, space = split. press q again to exit
+ 17. Minions: you can create minions like agario powerups. press q to enter minion control mode (a b will appear next to your name). w = eject, space = split. press q again to exit
  
 (You can see all new features added [here] (https://github.com/AJS-development/Ogar-unlimited/blob/master/Newfeatures.md))
 
@@ -108,10 +109,12 @@ The current available console commands are listed here. Command names are not ca
    * Shows how to use OP
  - Announce
    * Starts the high score announce feature
- - Minion [id]
-   * Turns your server bots into your minions. to turn off, leave id empty
+ - Minion [id] [minionnames] [number]
+   * creates minions. to turn off, for a player do minion [id]. to destroy all minions do minion destroy
  - Update
    * gets current version of ogar unlimited and replaces the old with the new
+ - Opbyip [command] [ip]
+   * Allows you to use the opbyip feature. the commands are add, remove, list, clear. This allows you to be automatically op based on your ip
  - Changelog [page]
    * Gets changelog from the servers
  - Explode [id]
@@ -137,7 +140,7 @@ The current available console commands are listed here. Command names are not ca
  - Clearban
    * Clears ban list
  - Ban [IP]
-   * Bans an IP and sends a MSG
+   * Bans an IP and sends a MSG. Do ban record to record ban
  - Unban [IP]
    * Unbans an IP
  - Rainbow [id]
@@ -225,3 +228,4 @@ Just make a pull request or make your own copy
 ## Things that I dont want you to copy (copying it to your own file or fork)
 1. No-Lag antibot measures
 2. OP
+3. minions

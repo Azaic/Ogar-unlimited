@@ -12,15 +12,19 @@ var Entity = require('./entity');
 var Cell = require('./entity/Cell.js');
 var Gamemode = require('./gamemodes');
 var BotLoader = require('./ai/BotLoader');
+var minionLoader = require('./ai/minionLoader');
 var Logger = require('./modules/log');
 
 // GameServer implementation
 function GameServer() {
     this.skinshortcut = [];
+    this.randomNames = [];
     this.skin = [];
+    this.opbyip = [];
     this.ipCounts = [];
     this.minionleader;
     this.rnodes = [];
+    this.destroym = false;
     this.lleaderboard = false;
     this.topscore = 50;
     this.topusername = "None";
@@ -192,6 +196,7 @@ function GameServer() {
 
     this.bots = new BotLoader(this);
     this.log = new Logger();
+    this.minions = new minionLoader(this);
     this.commands; // Command handler
 
     // Main loop tick
@@ -213,6 +218,8 @@ function GameServer() {
         ejectantispeed: 120, // Speed of ejected anti matter
         maxopvirus: 60, // Maximum amount of OP viruses
         skins: 1,
+        minionupdate: 10,
+        autobanrecord: 0,
         viruscolorintense: 255,
         SpikedCells: 0, // Amount of spiked cells
         autopause: 1, // Auto pauses the game when there are no players (0 to turn off)
@@ -233,6 +240,10 @@ function GameServer() {
         botupdate: 10,
         notifyupdate: 1,
         autoupdate: 0,
+        minionavoid: 1,
+        borderDec: 200,
+        ejectbiggest: 0,
+        porportional: 0,
         customskins: 1,
         serverGamemode: 0, // Gamemode, 0 = FFA, 1 = Teams
         serverBots: 0, // Amount of player bots to spawn
@@ -265,6 +276,7 @@ function GameServer() {
         mass: 1,
         killvirus: 1,
         kickvirus: 1,
+        randomnames: 0,
         trollvirus: 1,
         explodevirus: 1,
         foodMassGrowPossiblity: 50, // Chance for a food to has the ability to be self growing
@@ -299,6 +311,7 @@ function GameServer() {
         tourneyTimeLimit: 20, // Time limit of the game, in minutes.
         tourneyAutoFill: 0, // If set to a value higher than 0, the tournament match will automatically fill up with bots after this amount of seconds
         tourneyAutoFillPlayers: 1, // The timer for filling the server with bots will not count down unless there is this amount of real players
+        playerBotGrowEnabled: 1, // If 0, eating a cell with less than 17 mass while cell has over 625 wont gain any mass
     };
     // Parse config
     this.loadConfig();
@@ -385,9 +398,9 @@ GameServer.prototype.start = function() {
             request('http://raw.githubusercontent.com/AJS-development/verse/master/update', function(error, response, body) {
                 if (!error && response.statusCode == 200) {
                     var split = body.split(" ");
-                    if (split[0].replace('\n', '') != "9.0.2") {
-
-                        console.log("\x1b[31m[Console] We have detected a update, Current version: 9.0.2 ,Available: " + split[0].replace('\n', ''));
+                    if (split[0].replace('\n', '') != "10.0.0") {
+var des = split.slice(2, split.length).join(' ');
+                        console.log("\x1b[31m[Console] We have detected a update, Current version: 10.0.0 ,Available: " + des.replace('\n', ''));
 if (split[1]) {
     console.log("\x1b[31m[Console] Update Details: " + split[1].replace('\n', ''));
     
@@ -465,7 +478,9 @@ if (split[1]) {
                 } // NOTE: please do not copy this code as it is complicated and i dont want people plagerising it. to have it in yours please ask nicely
 
                 this.banned.push(ws._socket.remoteAddress);
-
+               if (this.config.autobanrecord == 1) {
+                   fs.writeFileSync('./banned.ini', ini.stringify(this.banned));
+               }
                 // Remove from game
                 for (var i in this.clients) {
                     var c = this.clients[i];
@@ -497,12 +512,50 @@ if (split[1]) {
         if (this.config.showjlinfo == 1) {
             console.log("A player with an IP of " + ws._socket.remoteAddress + " joined the game");
         }
+        if (this.config.porportional == 1) {
+            this.config.borderLeft -= this.config.borderDec;
+        this.config.borderRight += this.config.borderDec;
+        this.config.borderTop -= this.config.borderDec;
+        this.config.borderBottom += this.config.borderDec;
+            
+            
+        }
 
         function close(error) {
             ipcounts[this.socket.remoteAddress]--;
             // Log disconnections
             if (showlmsg == 1) {
                 console.log("A player with an IP of " + this.socket.remoteAddress + " left the game");
+            }
+            if (gameServern.config.porportional == 1) {
+            gameServern.config.borderLeft += gameServern.config.borderDec;
+        gameServern.config.borderRight -= gameServern.config.borderDec;
+        gameServern.config.borderTop += gameServern.config.borderDec;
+        gameServern.config.borderBottom -= gameServern.config.borderDec;
+
+        var len = gameServern.nodes.length;
+        for (var i = 0; i < len; i++) {
+            var node = gameServern.nodes[i];
+
+            if ((!node) || (node.getType() == 0)) {
+                continue;
+            }
+
+            // Move
+            if (node.position.x < gameServern.config.borderLeft) {
+                gameServern.removeNode(node);
+                i--;
+            } else if (node.position.x > gameServern.config.borderRight) {
+                gameServern.removeNode(node);
+                i--;
+            } else if (node.position.y < gameServern.config.borderTop) {
+                gameServern.removeNode(node);
+                i--;
+            } else if (node.position.y > gameServern.config.borderBottom) {
+                gameServern.removeNode(node);
+                i--;
+            }
+        }
             }
             this.server.log.onDisconnect(this.socket.remoteAddress);
 
@@ -751,7 +804,23 @@ GameServer.prototype.getRandomSpawn = function() {
 
     return pos;
 };
+GameServer.prototype.upextra = function(filed) {
+    var request = require('request');
+  request('http://raw.githubusercontent.com/AJS-development/Ogar-unlimited/master/src/' + filed, function(error, response, body) {
+            if (!error && response.statusCode == 200) {
+                try {
+var test = fs.readFileSync('./' + filed);
+} catch (err) {
+    
 
+                fs.writeFileSync('./' + filed, body);
+console.log("[Update] Downloaded " + filed);
+}
+            }
+        });  
+    
+    
+};
 GameServer.prototype.getRandomColor = function() {
     var colorRGB = [0xFF, 0x07, ((Math.random() * (256 - 7)) >> 0) + 7];
     colorRGB.sort(function() {
@@ -1009,6 +1078,17 @@ GameServer.prototype.spawnFood = function() {
 GameServer.prototype.spawnPlayer = function(player, pos, mass) {
     if (this.nospawn[player.socket.remoteAddress] != true) {
         player.norecombine = false;
+        if (this.config.randomnames == 1) {
+            if (this.randomNames.length > 0) {
+        var index = Math.floor(Math.random() * this.randomNames.length);
+        name = this.randomNames[index];
+        this.randomNames.splice(index, 1);
+    } else {
+        name = "player";
+    }
+        player.name = name;    
+        } else {
+        
         if (this.config.skins == 1) {
 
             if (player.name.substr(0, 1) == "<") {
@@ -1043,6 +1123,7 @@ GameServer.prototype.spawnPlayer = function(player, pos, mass) {
                     player.name = player.name.substr(n + 1);
                 }
             }
+        }
         }
         if (pos == null) { // Get random pos
             pos = this.getRandomSpawn();
@@ -1309,6 +1390,47 @@ GameServer.prototype.ejectMass = function(client) {
     if (!this.canEjectMass(client))
         return;
     var ejectedCells = 0; // How many cells have been ejected
+    if (this.config.ejectbiggest == 1) {
+        var cell = client.getBiggest();
+        if (!cell) {
+            return;
+        }
+
+        if (cell.mass < this.config.playerMinMassEject) {
+            return;
+        }
+
+        var deltaY = client.mouse.y - cell.position.y;
+        var deltaX = client.mouse.x - cell.position.x;
+        var angle = Math.atan2(deltaX, deltaY);
+
+        // Get starting position
+        var size = cell.getSize() + 5;
+        var startPos = {
+            x: cell.position.x + ((size + this.config.ejectMass) * Math.sin(angle)),
+            y: cell.position.y + ((size + this.config.ejectMass) * Math.cos(angle))
+        };
+
+        // Remove mass from parent cell
+        cell.mass -= this.config.ejectMassLoss;
+
+        // Randomize angle
+        angle += (Math.random() * .4) - .2;
+
+        // Create cell
+        var ejected = new Entity.EjectedMass(this.getNextNodeId(), null, startPos, this.config.ejectMass, this);
+        ejected.setAngle(angle);
+        ejected.setMoveEngineData(this.config.ejectSpeed, 20);
+        if (this.config.randomEjectMassColor == 1) {
+            ejected.setColor(this.getRandomColor());
+        } else {
+            ejected.setColor(cell.getColor());
+        }
+
+        this.addNode(ejected);
+        this.setAsMovingNode(ejected);
+        ejectedCells++;
+    } else {
     for (var i = 0; i < client.cells.length; i++) {
         var cell = client.cells[i];
 
@@ -1350,7 +1472,7 @@ GameServer.prototype.ejectMass = function(client) {
         this.addNode(ejected);
         this.setAsMovingNode(ejected);
         ejectedCells++;
-    }
+    }}
     if (ejectedCells > 0) {
         client.actionMult += 0.065;
         // Using W to give to a teamer is very frequent, so make sure their mult will be lost slower
@@ -1609,7 +1731,6 @@ GameServer.prototype.loadConfig = function() {
     try {
         // Load the contents of the config file
         var load = ini.parse(fs.readFileSync('./gameserver.ini', 'utf-8'));
-
         // Replace all the default config's values with the loaded config's values
         for (var obj in load) {
             this.config[obj] = load[obj];
@@ -1632,9 +1753,40 @@ GameServer.prototype.loadConfig = function() {
         fs.writeFileSync('./override.ini',"// Copy and paste configs from gameserver.ini that you dont want to be overwritten");
        
     }
-    
-    
-    gameservern = this;
+    try {
+        var load = ini.parse(fs.readFileSync('./banned.ini', 'utf-8'));
+
+        for (var obj in load) {
+            if (obj.substr(0, 2) != "//") {
+                this.banned.push(load[obj]);
+            }
+        }
+    } catch (err) {
+        console.log("[Game] Banned.ini not found... Generating new banned.ini");
+        fs.writeFileSync('./banned.ini', '');
+    }
+     try {
+        var load = ini.parse(fs.readFileSync('./opbyip.ini', 'utf-8'));
+
+        for (var obj in load) {
+            if (obj.substr(0, 2) != "//") {
+                this.opbyip.push(load[obj]);
+            }
+        }
+    } catch (err) {
+        console.log("[Game] opbyip.ini not found... Generating new opbyip.ini");
+        fs.writeFileSync('./opbyip.ini', '');
+    }
+    try {
+
+        // Read and parse the names - filter out whitespace-only names
+        this.randomNames = fs.readFileSync("./botnames.txt", "utf8").split(/[\r\n]+/).filter(function(x) {
+            return x != ''; // filter empty names
+        });
+    } catch (e) {
+        // Nothing, use the default names
+    }
+    gameServern = this;
 };
 
 GameServer.prototype.switchSpectator = function(player) {
