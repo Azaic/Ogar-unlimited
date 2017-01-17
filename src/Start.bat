@@ -1,9 +1,12 @@
+@echo off
 :loop
-@node index.js
+node --expose-gc index.js
 if errorlevel 1 (
-	if not errorlevel 3 (
-		GOTO END;
-	))
+if not errorlevel 3 (
+GOTO END;
+))
 goto loop
 :END
-pause
+echo.
+echo Press any key to exit...
+pause >nul
